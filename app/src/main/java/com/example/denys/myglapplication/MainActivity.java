@@ -30,7 +30,7 @@ public class MainActivity extends Activity
             mGLSurfaceView.setEGLContextClientVersion(2);
 
             // Set the renderer to our demo renderer, defined below.
-            mGLSurfaceView.setRenderer(new NewVrRenderer());
+            mGLSurfaceView.setRenderer(new NewVrRenderer(this));
         }
         else
         {
