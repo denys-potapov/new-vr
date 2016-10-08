@@ -12,10 +12,13 @@ import java.io.InputStreamReader;
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
 
+import android.os.SystemClock;
 import android.content.Context;
 import android.opengl.GLES20;
+import android.opengl.GLUtils;
 import android.opengl.GLSurfaceView;
-import android.os.SystemClock;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 
 /**
  * This class implements our custom renderer. Note that the GL10 parameter passed in is unused for OpenGL ES 2.0
@@ -27,14 +30,15 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
 
     /** Store our model data in a float buffer. */
     private final FloatBuffer mSquarePositions;
-    private final FloatBuffer mSquareColors;
-
+    private final FloatBuffer mSquareTextureCoordinates;
 
     /** This will be used to pass in model position information. */
     private int mPositionHandle;
 
-    /** This will be used to pass in model color information. */
-    private int mColorHandle;
+    /**
+     * This will be used to pass in model texture coordinate information.
+     */
+    private int mTextureCoordinateHandle;
 
     /** How many bytes per float. */
     private final int mBytesPerFloat = 4;
@@ -42,16 +46,25 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
     /** Size of the position data in elements. */
     private final int mPositionDataSize = 3;
 
-    /** Offset of the color data. */
-    private final int mColorOffset = 3;
-
-    /** Size of the color data in elements. */
-    private final int mColorDataSize = 4;
+    /**
+     * Size of the texture coordinate data in elements.
+     */
+    private final int mTextureCoordinateDataSize = 2;
 
     /**
      * This is a handle to our per-vertex cube shading program.
      */
     private int mProgramHandle;
+
+    /**
+     * This is a handle to our texture data.
+     */
+    private int mTextureDataHandle;
+
+    /**
+     * This will be used to pass in the texture.
+     */
+    private int mTextureUniformHandle;
 
     /**
      * Initialize the model data.
@@ -70,25 +83,27 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
                         1.0f, -1.0f, 0.0f,
                         1.0f, 1.0f, 0.0f
                 };
-        // R, G, B, A
-        final float[] squareColorData =
+
+        final float[] squareTextureCoordinateData =
                 {
-                        1.0f, 0.0f, 0.0f, 1.0f,
-                        1.0f, 0.0f, 0.0f, 1.0f,
-                        1.0f, 0.0f, 0.0f, 1.0f,
-                        0.0f, 1.0f, 0.0f, 1.0f,
-                        0.0f, 1.0f, 0.0f, 1.0f,
-                        0.0f, 1.0f, 0.0f, 1.0f
+                        // Front face
+                        0.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 0.0f,
+                        0.0f, 1.0f,
+                        1.0f, 1.0f,
+                        1.0f, 0.0f
                 };
+
 
         // Initialize the buffers.
         mSquarePositions = ByteBuffer.allocateDirect(squarePositionsData.length * mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
         mSquarePositions.put(squarePositionsData).position(0);
 
-        mSquareColors = ByteBuffer.allocateDirect(squareColorData.length * mBytesPerFloat)
+        mSquareTextureCoordinates = ByteBuffer.allocateDirect(squareTextureCoordinateData.length * mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
-        mSquareColors.put(squareColorData).position(0);
+        mSquareTextureCoordinates.put(squareTextureCoordinateData).position(0);
     }
 
     protected int loadShaderFromResource(final int resourceId, int shaderType)
@@ -146,6 +161,39 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
         return shaderHandle;
     }
 
+    public int loadTextureFromResource(final int resourceId) {
+        final int[] textureHandle = new int[1];
+
+        GLES20.glGenTextures(1, textureHandle, 0);
+
+        if (textureHandle[0] != 0) {
+            final BitmapFactory.Options options = new BitmapFactory.Options();
+            options.inScaled = false;    // No pre-scaling
+
+            // Read in the resource
+            final Bitmap bitmap = BitmapFactory.decodeResource(mActivityContext.getResources(), resourceId, options);
+
+            // Bind to the texture in OpenGL
+            GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, textureHandle[0]);
+
+            // Set filtering
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MIN_FILTER, GLES20.GL_NEAREST);
+            GLES20.glTexParameteri(GLES20.GL_TEXTURE_2D, GLES20.GL_TEXTURE_MAG_FILTER, GLES20.GL_NEAREST);
+
+            // Load the bitmap into the bound texture.
+            GLUtils.texImage2D(GLES20.GL_TEXTURE_2D, 0, bitmap, 0);
+
+            // Recycle the bitmap, since its data has been loaded into OpenGL.
+            bitmap.recycle();
+        }
+
+        if (textureHandle[0] == 0) {
+            throw new RuntimeException("Error loading texture.");
+        }
+
+        return textureHandle[0];
+    }
+
     @Override
     public void onSurfaceCreated(GL10 glUnused, EGLConfig config) {
         // Set the background clear color to black.
@@ -176,7 +224,7 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
 
             // Bind attributes
             GLES20.glBindAttribLocation(mProgramHandle, 0, "a_Position");
-            GLES20.glBindAttribLocation(mProgramHandle, 1, "a_Color");
+            GLES20.glBindAttribLocation(mProgramHandle, 1, "a_TexCoordinate");
 
             // Link the two shaders together into a program.
             GLES20.glLinkProgram(mProgramHandle);
@@ -197,7 +245,8 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
             throw new RuntimeException("Error creating program.");
         }
 
-
+        // Load the texture
+        mTextureDataHandle = loadTextureFromResource(R.drawable.mango);
     }
 
     @Override
@@ -220,8 +269,19 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
         GLES20.glUseProgram(mProgramHandle);
 
         // Set program handles. These will later be used to pass in values to the program.
+        mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
         mPositionHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_Position");
-        mColorHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_Color");
+        mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
+
+        // Set the active texture unit to texture unit 0.
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
+
+        // Bind the texture to this unit.
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mTextureDataHandle);
+
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+        GLES20.glUniform1i(mTextureUniformHandle, 0);
+
 
         // Pass in the position information
         mSquarePositions.position(0);
@@ -230,12 +290,12 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
 
         GLES20.glEnableVertexAttribArray(mPositionHandle);
 
-        // Pass in the color information
-        mSquareColors.position(0);
-        GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false,
-                0, mSquareColors);
+        // Pass in the texture coordinate information
+        mSquareTextureCoordinates.position(0);
+        GLES20.glVertexAttribPointer(mTextureCoordinateHandle, mTextureCoordinateDataSize, GLES20.GL_FLOAT, false,
+                0, mSquareTextureCoordinates);
 
-        GLES20.glEnableVertexAttribArray(mColorHandle);
+        GLES20.glEnableVertexAttribArray(mTextureCoordinateHandle);
 
         // Draw the cube.
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 6); // 6 length of mSquarePositions
