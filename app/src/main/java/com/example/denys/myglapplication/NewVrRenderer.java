@@ -67,6 +67,16 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
     private int mTextureUniformHandle;
 
     /**
+     * This is a handle to our texture data.
+     */
+    private int mDepthDataHandle;
+
+    /**
+     * This will be used to pass in the texture.
+     */
+    private int mDepthUniformHandle;
+
+    /**
      * Initialize the model data.
      */
     public NewVrRenderer(final Context activityContext)
@@ -209,7 +219,7 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
         int vertexShaderHandle = loadShaderFromResource(R.raw.vertex_shader, GLES20.GL_VERTEX_SHADER);
 
         // Load in the fragment shader shader.
-        int fragmentShaderHandle = loadShaderFromResource(R.raw.fragment_shader, GLES20.GL_FRAGMENT_SHADER);
+        int fragmentShaderHandle = loadShaderFromResource(R.raw.depth_perspective, GLES20.GL_FRAGMENT_SHADER);
 
         // Create a program object and store the handle to it.
         mProgramHandle = GLES20.glCreateProgram();
@@ -247,6 +257,7 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
 
         // Load the texture
         mTextureDataHandle = loadTextureFromResource(R.drawable.mango);
+        mDepthDataHandle = loadTextureFromResource(R.drawable.mango_depthmap);
     }
 
     @Override
@@ -263,17 +274,29 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
 
         // Do a complete rotation every 10 seconds.
         long time = SystemClock.uptimeMillis() % 10000L;
-        float angleInDegrees = (360.0f / 10000.0f) * ((int) time);
+        float angle = ((float) Math.PI / 5000.0f) * ((int) time);
 
         // Tell OpenGL to use this program when rendering.
         GLES20.glUseProgram(mProgramHandle);
 
         // Set program handles. These will later be used to pass in values to the program.
         mTextureUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Texture");
+        mDepthUniformHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_Depth");
+
         mPositionHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_Position");
         mTextureCoordinateHandle = GLES20.glGetAttribLocation(mProgramHandle, "a_TexCoordinate");
 
-        // Set the active texture unit to texture unit 0.
+        int uScaleHandle = GLES20.glGetUniformLocation(mProgramHandle, "scale");
+        int uOffsetHandle = GLES20.glGetUniformLocation(mProgramHandle, "offset");
+        int uFocusHandle = GLES20.glGetUniformLocation(mProgramHandle, "focus");
+
+        // focus config
+        // GLES20.glUniform2f(uOffsetHandle, (float) Math.sin(angle), 0.0f);
+        GLES20.glUniform2f(uOffsetHandle, (float) Math.sin(angle), (float) Math.cos(angle));
+        GLES20.glUniform1f(uScaleHandle, 0.07f); // magic number
+        GLES20.glUniform1f(uFocusHandle, 0.5f);
+
+        // Load texture. Set the active texture unit to texture unit 0.
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
 
         // Bind the texture to this unit.
@@ -282,6 +305,14 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
         // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
         GLES20.glUniform1i(mTextureUniformHandle, 0);
 
+        // Load depth. Set the active texture unit to texture unit 0.
+        GLES20.glActiveTexture(GLES20.GL_TEXTURE1);
+
+        // Bind the texture to this unit.
+        GLES20.glBindTexture(GLES20.GL_TEXTURE_2D, mDepthDataHandle);
+
+        // Tell the texture uniform sampler to use this texture in the shader by binding to texture unit 0.
+        GLES20.glUniform1i(mDepthUniformHandle, 1);
 
         // Pass in the position information
         mSquarePositions.position(0);
