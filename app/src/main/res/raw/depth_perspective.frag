@@ -117,7 +117,7 @@ const float dmax = (1.0 + compression) / 2.0;
 
 const float vectorCutoff = 0.0 + dmin - 0.0001;
 
-float aspect = 1;
+float aspect = 1.0;
 // float aspect = dimensions.x / dimensions.y;
 
 vec2 scale2 = vec2(scale * min(1.0, 1.0 / aspect), scale * min(1.0, aspect)) * vec2(1, -1) * vec2(ENLARGE);
