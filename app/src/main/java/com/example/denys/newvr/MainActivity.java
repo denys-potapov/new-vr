@@ -1,4 +1,4 @@
-package com.example.denys.myglapplication;
+package com.example.denys.newvr;
 
 import android.app.Activity;
 import android.app.ActivityManager;

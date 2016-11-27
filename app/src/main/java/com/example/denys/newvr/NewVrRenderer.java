@@ -1,4 +1,4 @@
-package com.example.denys.myglapplication;
+package com.example.denys.newvr;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
