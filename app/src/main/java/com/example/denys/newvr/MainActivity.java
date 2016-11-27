@@ -1,60 +1,38 @@
 package com.example.denys.newvr;
 
-import android.app.Activity;
-import android.app.ActivityManager;
-import android.content.Context;
-import android.content.pm.ConfigurationInfo;
-import android.opengl.GLSurfaceView;
 import android.os.Bundle;
+import android.widget.FrameLayout;
 
-public class MainActivity extends Activity
-{
-    /** Hold a reference to our GLSurfaceView */
-    private GLSurfaceView mGLSurfaceView;
+import org.artoolkit.ar.base.ARActivity;
+import org.artoolkit.ar.base.rendering.ARRenderer;
+
+/**
+ * This is the activity that gets called from the Android Framework, extended by the
+ * ARToolKit Framework to add AR capability.
+ * A very simple example of extending ARActivity to create a new AR application.
+ */
+public class MainActivity extends ARActivity {
 
     @Override
-    public void onCreate(Bundle savedInstanceState)
-    {
+    public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-
-        mGLSurfaceView = new GLSurfaceView(this);
-
-        // Check if the system supports OpenGL ES 2.0.
-        final ActivityManager activityManager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
-        final ConfigurationInfo configurationInfo = activityManager.getDeviceConfigurationInfo();
-        final boolean supportsEs2 = configurationInfo.reqGlEsVersion >= 0x20000;
-
-        if (supportsEs2)
-        {
-            // Request an OpenGL ES 2.0 compatible context.
-            mGLSurfaceView.setEGLContextClientVersion(2);
-
-            // Set the renderer to our demo renderer, defined below.
-            mGLSurfaceView.setRenderer(new NewVrRenderer(this));
-        }
-        else
-        {
-            // This is where you could create an OpenGL ES 1.x compatible
-            // renderer if you wanted to support both ES 1 and ES 2.
-            return;
-        }
-
-        setContentView(mGLSurfaceView);
+        setContentView(R.layout.main);
     }
 
+    /**
+     * Tell the ARToolKit which renderer to use. In this case we provide a subclass of
+     * {@link org.artoolkit.ar.base.rendering.gles20.ARRendererGLES20} renderer.
+     */
     @Override
-    protected void onResume()
-    {
-        // The activity must call the GL surface view's onResume() on activity onResume().
-        super.onResume();
-        mGLSurfaceView.onResume();
+    protected ARRenderer supplyRenderer() {
+        return new SimpleGLES20Renderer();
     }
 
+    /**
+     * Use the FrameLayout in this Activity's UI.
+     */
     @Override
-    protected void onPause()
-    {
-        // The activity must call the GL surface view's onPause() on activity onPause().
-        super.onPause();
-        mGLSurfaceView.onPause();
+    protected FrameLayout supplyFrameLayout() {
+        return (FrameLayout) this.findViewById(R.id.mainLayout);
     }
 }
