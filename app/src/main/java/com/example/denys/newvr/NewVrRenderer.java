@@ -233,6 +233,9 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
         // Enable depth testing
         GLES20.glEnable(GLES20.GL_DEPTH_TEST);
 
+        GLES20.glEnable(GLES20.GL_BLEND);
+        GLES20.glBlendFunc(GLES20.GL_SRC_ALPHA, GLES20.GL_ONE_MINUS_SRC_ALPHA);
+
         // Position the eye behind the origin.
         final float eyeX = 0.0f;
         final float eyeY = 0.0f;
@@ -293,7 +296,7 @@ public class NewVrRenderer implements GLSurfaceView.Renderer
 
         // Load the texture
         mTextureDataHandle = loadTextureFromResource(R.drawable.mango);
-        mDepthDataHandle = loadTextureFromResource(R.drawable.mango_depthmap);
+        mDepthDataHandle = loadTextureFromResource(R.drawable.depth_rgb);
 
         // Set program handles. These will later be used to pass in values to the program.
         mMVPMatrixHandle = GLES20.glGetUniformLocation(mProgramHandle, "u_MVPMatrix");

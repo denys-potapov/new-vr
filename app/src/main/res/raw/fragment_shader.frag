@@ -8,9 +8,17 @@ varying vec2 v_TexCoordinate;   // Interpolated texture coordinate per fragment.
 
 void main()                     // The entry point for our fragment shader.
 {
+    vec4 p = texture2D(u_Depth, v_TexCoordinate);
+
+    if (p.b < 0.1) {
+        gl_FragColor = vec4(0.0);
+        return ;
+    }
+
     vec3 pos;
     pos.xy = v_TexCoordinate;
-    pos.z = texture2D(u_Depth, v_TexCoordinate).x;
+    pos.z = p.r + p.g / 256.0;
 
-    gl_FragColor = u_MVPMatrix * vec4(pos, 1.0);
+    vec4 all = u_MVPMatrix * vec4(pos, 1.0);
+    gl_FragColor = vec4(all.xy, 0.0, 1 .0);
 }
